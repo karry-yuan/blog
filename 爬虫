@@ -1,0 +1,63 @@
+#request 获取网页源码
+#beautifulsoup对内容进行解析
+#将解析好的内容存在excel文件里面，写入excel文件； xlrt 读取excel文件
+
+from bs4 import BeautifulSoup as bs
+import requests
+import xlwt
+#新建excel表格，存储爬取内容
+workbook = xlwt.Workbook(encoding='utf-8') ## 创建一个workbook并且设置编码
+worksheet = workbook.add_sheet('DoubanMovie Top 100')#创建一个表格，命名为“DangDangBook Top 100”
+worksheet.write(0,0,'电影排名')
+worksheet.write(0,1,'电影名称')
+worksheet.write(0,2,'电影评分')
+worksheet.write(0,3,'上映日期')
+worksheet.write(0,4,'制片地区')
+worksheet.write(0,5,'电影题材')
+row=0  #全局变量，作为排名计数
+def main(pages):
+    url = 'https://movie.douban.com/top250?start='+str(pages)+'&filter='
+    hearders = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'}
+    html = reuqestd(url, hearders)
+    #print(pages)
+    #print(html)
+    soup = bs(html, 'html5lib')
+    #print(soup)
+    lists = soup.find(class_='grid_view').find_all('li')
+    #print(lists)
+    global row
+    for each in lists:
+        row=row+1
+        eachMoviename = each.find(class_='pic').find('a').find('img').get('alt')
+        eachMoviescore=each.find(class_='star').find(class_='rating_num').string
+        eachMovie=each.find(class_='bd').find('p').text
+        t = eachMovie.find('\n', 1) + 29
+        eachMovieyear = eachMovie[t:t + 4]
+        k = eachMovie[t + 7:]
+        m = k.find('/')
+        eachMoviecountry=k[0:m-1]
+        re=k[m + 2:]
+        eachMovietype=re.strip()
+        print('电影排名：',row,'电影名称:',eachMoviename,'电影评分：',eachMoviescore,'上映日期：',eachMovieyear,'制片地区：',eachMoviecountry,'电影题材：',eachMovietype)
+        worksheet.write(row, 0, row)
+        worksheet.write(row, 1, eachMoviename)
+        worksheet.write(row, 2, eachMoviescore)
+        worksheet.write(row, 3, eachMovieyear)
+        worksheet.write(row, 4, eachMoviecountry)
+        worksheet.write(row, 5, eachMovietype)
+
+def reuqestd(url,headers):
+	try:
+		response = requests.get(url,headers=headers)
+		#print(response.status_code)
+		if response.status_code == 200:
+			return response.text
+	except requests.RequestException:
+		return None
+if __name__ == '__main__':
+    i=0
+    while i<100:
+        main(i)
+        i=i+25
+    workbook.save('../result.xls')
